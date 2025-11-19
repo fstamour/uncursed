@@ -22,8 +22,8 @@ n.b. `sand-game.lisp` features the color/timer functionality of the library and 
   - [x] resize live
 - [x] cross-thread `wakeup`
 - [x] documentation
-- [ ] Windows support
-- [ ] better window management interface
+- [x] Windows support (new!)
+- [ ] better windowing abstraction
 
 ## Getting started
 For interactive development, a output terminal device is necessary but the SLIME repl within emacs does not emulate a terminal.
@@ -65,7 +65,7 @@ This is unimplemented by default.
 It's pretty simple as you can see. Get the dimensions, initialize a rect structure with 0-based cell coordinates (top left being origin)
 for your `window` subclass's `dimensions` slot and use it to initialize a `tui` instance.
 On that topic, implementing three methods is useful:
-* `defgeneric handle-key-event (window tui event)` - self-explanatory, events take the following forms 
+* `defgeneric handle-key-event (window tui event)` - self-explanatory, events take the following forms
 (may not work on all terminals, play with `examples/input.lisp`)
   * `(CHARACTER [modifiers]...)` - modifiers include :shift, :alt, :control and :meta
   * `:f1-20, :home, :end, :insert, :delete, :up/:down/:left/:right-arrow, :page-down, :page-up`

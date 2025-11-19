@@ -16,6 +16,7 @@
 
            #:character-width #:*character-widths*
            #:display-width
+           #:+stdin+
            #:setup-terminal
            #:restore-terminal
 
@@ -34,6 +35,7 @@
 
            #:catch-sigwinch
            #:reset-sigwinch
+           #:win-events-left
            ))
 
 (defpackage :uncursed

@@ -6,23 +6,25 @@
   (:export #:main))
 (in-package #:uncursed-input)
 
-(defun main ()
+(defun main (&key hover)
   (bt:join-thread
    (bt:make-thread
     (lambda ()
       (let (termios)
         (unwind-protect
              (progn
-               (setf termios (uncursed-sys:setup-terminal 0))
+               #+unix (setf termios (uncursed-sys:setup-terminal 0))
+               #+windows (setf termios (uncursed-sys:setup-terminal))
                (let (#+sbcl (*terminal-io* *standard-output*))
-                 (uncursed:enable-mouse)
+                 (uncursed:enable-mouse :hover hover)
                  (force-output))
                (loop :for event = (print (uncursed-sys:read-event))
-                     :until (eql event #\Q)
+                     :until (equal event '(#\c :control))
                      :do (princ #\return)
                          (force-output)))
           (princ #\return)
           (let (#+sbcl (*terminal-io* *standard-output*))
             (uncursed:disable-mouse)
             (force-output))
-          (uncursed-sys:restore-terminal termios 0)))))))
+          #+unix (uncursed-sys:restore-terminal termios 0)
+          #+windows (uncursed-sys:restore-terminal termios)))))))

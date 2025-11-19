@@ -1,6 +1,5 @@
 (in-package :uncursed-sys)
 
-#+unix
 (progn
   (include "errno.h")
   (cvar ("errno" c-errno) :int)
@@ -13,9 +12,6 @@
   (include "signal.h")
   (constant (c-sigwinch "SIGWINCH"))
 
-  (include "wchar.h")
-  (ctype c-wchar "wchar_t") ;will break on windows
-
   (include "sys/ioctl.h")
   (cstruct c-winsize "struct winsize"
            (c-ws-rows "ws_row" :type :unsigned-short)
@@ -23,7 +19,7 @@
   (constant (c-get-winsz "TIOCGWINSZ"))
   (constant (c-set-attributes-flush "TCSAFLUSH"))
 
-  (include "sys/select.h") ; TODO conditionalize
+  (include "sys/select.h")
   (cstruct c-fd-set "fd_set")
 
   (include "time.h")

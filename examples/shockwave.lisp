@@ -11,8 +11,9 @@
 ;;; logging from a remote slime session
 
 (defvar *log*)
+(defvar *tui*)
 (defun log* (o)
-  #+sbcl (sb-concurrency:send-message *log* o)
+  #+(and sbcl slynk) (sb-concurrency:send-message *log* o)
   o)
 
 ;;; waves
@@ -45,7 +46,7 @@
         :for dx = (isqrt (- (* r r) (* dy dy)))
         :for x-left = (- (circle-x c) dx)
         :for x-right = (+ (circle-x c) dx)
-        :do (when (and (>= x-left 1) (<= 1 y view-rows))
+        :do (when (and (<= 1 x-left view-cols) (<= 1 y view-rows)) ; can be clipped
               (tui:put #\space y x-left (tui:make-style :bg (circle-color c))))
             (when (and (<= x-right view-cols) (<= 1 y view-rows))
               (tui:put #\space y x-right (tui:make-style :bg (circle-color c))))
@@ -58,7 +59,8 @@
                    (x (+ box-x y-rel))
                    (y-high (+ box-y x-left-rel))
                    (y-low (+ box-y x-right-rel)))
-              (when (and (>= y-high 1) (<= 1 x view-cols))
+              ;; y-high can be clipped by a window resize
+              (when (and (<= 1 y-high view-rows) (<= 1 x view-cols))
                 (tui:put #\space y-high x (tui:make-style :bg (circle-color c))))
               (when (and (<= y-low view-rows) (<= 1 x view-cols))
                 (tui:put #\space y-low x (tui:make-style :bg (circle-color c)))))))
@@ -84,9 +86,10 @@
 (defmethod present-wave ((f flame) view)
   (loop :with dimensions = (tui:dimensions view)
         :for x :from (max 1 (- (flame-x f) (flame-radius f)))
-          :to (min (+ (flame-x f) (flame-radius f)) (tui:rect-cols dimensions))
-        :do (tui:put #\space (max 1 (1+ (- (flame-y f) (random 8))))
-                     x (tui:make-style :bg (flame-color f)))))
+               :to (min (+ (flame-x f) (flame-radius f)) (tui:rect-cols dimensions))
+        :for y = (1+ (- (flame-y f) (random 8)))
+        :do (when (and (<= 1 y (tui:rect-rows dimensions)))
+              (tui:put #\space y x (tui:make-style :bg (flame-color f))))))
 
 ;;; tui code
 
@@ -105,8 +108,7 @@
 (defmethod tui:handle-resize progn ((tui ui))
   (let ((dimensions (tui:dimensions (tui:focused-window tui))))
     (setf (tui:rect-cols dimensions) (tui:cols tui)
-          (tui:rect-rows dimensions) (tui:rows tui)
-          (fill-pointer (waves (tui:focused-window tui))) 0)))
+          (tui:rect-rows dimensions) (tui:rows tui))))
 
 (defmethod tui:handle-key-event ((window view) tui event)
   nil)
@@ -121,15 +123,17 @@
     (:right (when (eq state :release) (vector-push-extend (make-triangle :y line :x col)
                                                           (waves window))))
     (:wheel-up (setf *green-mod* (max 1.01 (- *green-mod* 0.03))))
-    (:wheel-down (setf *green-mod* (min 1.08 (+ *green-mod* 0.03))))))
+    (:wheel-down (setf *green-mod* (min 1.08 (+ *green-mod* 0.03)))))
+  #+sbcl (log* (format nil "saw button ~a,~a at row ~d, col ~d" button state line col)))
 
 (defun tui-handle-event (tui ev)
-  (cond ((equal ev '(#\w :control))
+  #+sbcl (log* ev)
+  (cond ((equal ev '(#\c :control))
          (tui:stop tui))))
 
 ;;; tick logic
 
-(defparameter *tick* 0.05)
+(defparameter *tick* 0.032)
 
 (defgeneric update-wave (wave view-bounds))
 
@@ -182,9 +186,9 @@
           :do (let ((old (wave-color w)))
                 (setf (wave-color w)
                       (uncursed-sys::color
-                       (truncate (uncursed-sys::red old) 1.04)
+                       (truncate (uncursed-sys::red old) 1.06)
                        (truncate (uncursed-sys::green old) *green-mod*)
-                       (truncate (uncursed-sys::blue old) 1.00))))
+                       (truncate (uncursed-sys::blue old) 1.0))))
               (alexandria:when-let (w (update-wave w view-bounds))
                 (vector-push w waves))))
   *tick*)
@@ -200,15 +204,15 @@
                           :dimensions (tui:make-rect :x 0 :y 0
                                                      :rows (car dimensions)
                                                      :cols (cdr dimensions))))
-         (ui
+         (tui
            (make-instance 'ui :focused-window view
                               :windows (list view)
                               :event-handler #'tui-handle-event)))
-    (tui:schedule-timer ui (tui:make-timer *tick* #'tick :context (waves view)))
-    (tui:run ui)
+    (setf *tui* tui)
+    (tui:schedule-timer tui (tui:make-timer *tick* #'tick :context (waves view)))
+    (tui:run tui :redisplay-on-input nil)
     #+sbcl
-    (when (boundp '*log*)
-      (sb-concurrency:send-message *log* :stop))))
+    (sb-concurrency:send-message *log* :stop)))
 
 (defun main ()
   (if (member :slynk *features*)

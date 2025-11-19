@@ -3,12 +3,12 @@
   :author "tianlin qu"
   :license "BSD 3-Clause"
   :defsystem-depends-on ("cffi-grovel")
-  :depends-on (:alexandria :cffi :terminfo :cl-setlocale)
-  :version "0.2.0"
+  :depends-on (:alexandria :cffi :cl-setlocale #+unix :terminfo)
+  :version "0.3.0"
   :serial t
   :components ((:file "package")
-               (:cffi-grovel-file "grovel")
-               (:cffi-wrapper-file "wrappers")
+               #+unix (:cffi-grovel-file "grovel")
+               #+unix (:cffi-wrapper-file "wrappers")
                (:file "condition")
                (:file "hacks")
                (:file "util")

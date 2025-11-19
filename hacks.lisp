@@ -83,7 +83,7 @@ Yes we only actually use 16-231 as otherwise the user's custom colors get clobbe
     old))
 
 (defun reset-colors ()
-  (ti:tputs ti:orig-colors)
+  #+unix (ti:tputs ti:orig-colors)
   (setf *current-index* 16)
   (fill *palette* most-positive-fixnum))
 

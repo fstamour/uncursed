@@ -1,6 +1,5 @@
 (in-package :uncursed-sys)
 
-#+unix
 (progn
   (include "sys/select.h")
   (defwrapper* ("FD_ZERO" fd-zero) :void
