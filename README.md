@@ -1,7 +1,9 @@
 # uncursed
 
-A library for writing terminal interfaces without curses.
-A higher-level buffered abstraction and low-level utilities are available. Supported implementations will include sbcl, ccl and ecl.
+A cross-platform library for writing terminal interfaces with minimal dependencies (terminfo on unix, recent conhost with VT support on windows). A higher-level buffered drawing abstraction and low-level utilities are provided. Supported implementations will include sbcl, ccl and ecl.
+
+Some useful features are provided beyond stock curses functionality:
+while this library doesn't aim to provide a full async i/o loop, it does support input timeouts and thread-safe wakeups to integrate with other event sources. The buffer abstraction allows stateless color drawing (no leaky color pairs) while internally optimizing output sequences and makes an attempt to account for wide unicode characters, detecting attempts to overwrite them or draw them beyond the window edge. However width calculations are done character-wise which misses some combining rules and ambiguous characters are not yet localised. This will be improved as needed, PRs welcome!
 
 Some basic examples can be found in the `examples` directory.
 n.b. `sand-game.lisp` features the color/timer functionality of the library and displays flashing colors.
@@ -13,17 +15,15 @@ n.b. `sand-game.lisp` features the color/timer functionality of the library and 
   - [x] palette fallback (init_color or approximation)
 - [x] comprehensive input handling
   - [x] any-event mouse tracking (SGR 1006 only), including modifiers
-  - [x] special keys, including modifiers
-- [x] unicode support (combining and fullwidth)
-- [x] basic terminal resizing support
+  - [x] special keys, including modifiers (nonstandard st sequences unsupported)
+- [x] basic unicode support (width calculation, overwrite signals)
 - [x] timers
-- [x] resizing
-  - [x] resize on input
-  - [x] resize live
-- [x] cross-thread `wakeup`
-- [x] documentation
+- [x] terminal resize hook
+- [x] thread-safe `wakeup`
+- [x] basic documentation
 - [x] Windows support (new!)
-- [ ] better windowing abstraction
+- [ ] layout abstraction
+- [ ] high-level widget modules
 
 ## Getting started
 For interactive development, a output terminal device is necessary but the SLIME repl within emacs does not emulate a terminal.
@@ -102,4 +102,4 @@ to avoid slime redirecting output to the REPL, which cannot process terminal esc
 ## extra tips
 * Call `wakeup` on a tui instance to safely trigger a redisplay from another thread, possibly doing some long running computation or i/o
 * Use a mailbox-popping loop on the main/slime thread to log messages from drawing code to slime and not the terminal screen, see `examples/shockwave.lisp`
-* Use the `use-palette` initarg to control whether the terminal palette is used. I will have nothing to do with this.
+* Use the `use-palette` initarg to control whether the terminal palette is used. The library makes a best effort to avoid messing up user colors on exit, prefer approximation to modifying the palette.

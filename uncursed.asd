@@ -9,7 +9,6 @@
   :components ((:file "package")
                #+unix (:cffi-grovel-file "grovel")
                #+unix (:cffi-wrapper-file "wrappers")
-               (:file "condition")
-               (:file "hacks")
+               (:file "palette")
                (:file "util")
                (:file "uncursed")))

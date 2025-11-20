@@ -40,6 +40,20 @@ It is recommended to bind *character-widths* dynamically in calling threads."
   (declare (optimize speed))
   (reduce #'+ string :key 'character-width))
 
+;;; terminal dimensions
+
+(define-condition uncursed-error (simple-error)
+  ())
+
+(define-condition syscall-error (uncursed-error)
+  ())
+
+(defun error-syscall-error (control &rest args)
+  (error 'syscall-error
+         :format-control #-sbcl control
+                         #+sbcl (format nil "~a: ~a" control (sb-int:strerror))
+         :format-arguments args))
+
 (defvar *fallback-terminal-dimensions* (cons 24 80))
 
 #+unix
@@ -631,40 +645,40 @@ is unreliable and lisp events read may not correspond perfectly to windows event
 
 (defun enable-alternate-screen ()
   #+unix (ti:tputs ti:enter-ca-mode)
-  #+windows (format *terminal-io* "~c[?1049h" #\Esc))
+  #+windows (format *terminal-io* "~c[?1049h" #\esc))
 
 (defun disable-alternate-screen ()
   #+unix (ti:tputs ti:exit-ca-mode)
-  #+windows (format *terminal-io* "~c[?1049l" #\Esc))
+  #+windows (format *terminal-io* "~c[?1049l" #\esc))
 
 (defun clear-screen ()
   #+unix (ti:tputs ti:clear-screen)
-  #+windows (format *terminal-io* "~c[2J" #\Esc))
+  #+windows (format *terminal-io* "~c[2J" #\esc))
 
 (defun clear-to-end-of-line ()
   #+unix (ti:tputs ti:clr-eol)
-  #+windows (format *terminal-io* "~c[K" #\Esc))
+  #+windows (format *terminal-io* "~c[K" #\esc))
 
 (defun clear-chars (&optional (n 1))
   #+unix (ti:tputs ti:erase-chars n)
-  #+windows (format *terminal-io* "~c[~dP" #\Esc n))
+  #+windows (format *terminal-io* "~c[~dP" #\esc n))
 
 (defun set-cursor-position (line column)
   "NEW-VALUE is a (LINE . COLUMN) pair, *zero* indexed unlike the higher
 level cell grid."
   #+unix (ti:tputs ti:cursor-address line column)
-  #+windows (format *terminal-io* "~c[~d;~dH" #\Esc (1+ line) (1+ column)))
+  #+windows (format *terminal-io* "~c[~d;~dH" #\esc (1+ line) (1+ column)))
 
 (defun set-cursor-shape (style &key blink-p)
   (if (eq style :invisible)
       #+unix (ti:tputs ti:cursor-invisible)
-      #+windows (format *terminal-io* "~c[?25l" #\Esc)
+      #+windows (format *terminal-io* "~c[?25l" #\esc)
       (let ((arg (case style
                    (:block 2)
                    (:underline 4)
                    (:bar 6))))
         #+unix (ti:tputs ti:cursor-visible)
-        #+windows (format *terminal-io* "~c[?25h" #\Esc)
+        #+windows (format *terminal-io* "~c[?25h" #\esc)
         (format *terminal-io* "~c[~d q" #\esc (if blink-p (1- arg) arg)))))
 
 ;;; attributes
@@ -769,7 +783,7 @@ level cell grid."
 (define-constant +blank-style+ (make-style) :test 'equalp)
 (defun set-style (style &optional use-palette)
   #+unix (ti:tputs ti:exit-attribute-mode)
-  #+windows (format *terminal-io* "~c[m" #\Esc)
+  #+windows (format *terminal-io* "~c[m" #\esc)
   (set-style-from-old +blank-style+ style use-palette))
 
 (defun set-foreground (r g b)
