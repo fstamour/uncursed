@@ -15,11 +15,11 @@
   (declare (optimize speed))
   (cond ;; this seems close enough for now
     (#+sbcl (member (sb-unicode:general-category character) '(:me :mn :mc :cf :cc :zl :zp))
-     #+(and (not sbcl) unix) (<= (cffi:foreign-funcall "wcwidth" :int character :int) 0)
+     #+(and (not sbcl) unix) (<= (cffi:foreign-funcall "wcwidth" :int (char-code character) :int) 0)
      0)
     ;; zero width characters already excluded
     (#+sbcl (member (sb-unicode:east-asian-width character) '(:W :F))
-     #+(and (not sbcl) unix) (= (cffi:foreign-funcall "wcwidth" :int character :int) 2)
+     #+(and (not sbcl) unix) (= (cffi:foreign-funcall "wcwidth" :int (char-code character) :int) 2)
      2)
     (t 1)))
 
