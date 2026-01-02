@@ -3,7 +3,7 @@
   :author "tianlin qu"
   :license "GPLv3"
   :defsystem-depends-on ("cffi-grovel")
-  :depends-on (:uncursed :bordeaux-threads)
+  :depends-on (#:uncursed :bordeaux-threads)
   :components ((:module "examples"
                 :serial t
                 :components ((:file "input")

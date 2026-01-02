@@ -2,7 +2,7 @@
 ;;;; internals
 ;;
 
-(in-package :uncursed-sys)
+(in-package #:uncursed-sys)
 
 (defparameter *character-widths*
   (apply #'make-hash-table
@@ -150,7 +150,7 @@ Sets process locale from environment."
           (setf c-iflag (logior c-iflag c-icrnl)) ; convert CR->newline XXX a hack for vico
           (setf c-oflag (logandc2 c-oflag c-opost)) ; NO system-specific processing
           (setf c-lflag (logandc2 c-lflag (logior c-icanon ; no buffering
-                                                  c-isig ; we'll Handle keys ourselves
+                                                  c-isig ; we'll handle keys ourselves
                                                   c-echo))) ; no input echoing
           (setf c-cflag (logandc2 c-lflag c-parenb)) ; no parity checking
           (when (minusp (tcsetattr fd c-set-attributes-flush new-termios))
@@ -233,8 +233,6 @@ to the original termios struct returned by a call to SETUP-TERM which is freed."
     (values)))
 
 ;;; input TODO parsing could be more robust to malformed csi and slow networks
-
-;; utilities
 
 (defun enable-mouse (&key hover)
   (if hover
@@ -638,10 +636,10 @@ is unreliable and lisp events read may not correspond perfectly to windows event
 ;;; misc
 
 ;; NOTE: scrolling is near useless because most terminals don't support changing
-;; left/right margins. thus I will not include support as most uses are probably a mistake
-
+;; left/right margins, so I will not include support as most uses are probably a mistake
+;;
 ;; NOTE: windows terminal hardcodes xterm sequences, and doesn't have terminfo
-;; honestly that's fine
+;;       honestly following defacto xterm is fine
 
 (defun enable-alternate-screen ()
   #+unix (ti:tputs ti:enter-ca-mode)
@@ -727,7 +725,7 @@ level cell grid."
 (defvar *default-style* (make-style))
 
 #+unix ; just don't do this on windows, use direct-color
-(defun initialize-color-magic (index attr) ;
+(defun initialize-color-magic (index attr)
   (ti:tputs ti:initialize-color index
             (color-magic (red attr))
             (color-magic (green attr))

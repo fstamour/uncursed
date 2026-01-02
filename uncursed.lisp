@@ -1,4 +1,4 @@
-(in-package :uncursed)
+(in-package #:uncursed)
 
 ;;; basic definitions
 
@@ -88,6 +88,7 @@ May only be called from within the dynamic-extent of a call to RUN."))
           (alexandria:when-let (termios (%termios tui))
             (sys:restore-terminal termios sys:+stdin+)
             (setf (%termios tui) nil))
+		  (finish-output)
           ;; note if ^ fails, this will not run. But in that case we're screwed anyways
           (alexandria:when-let (pipe (%winch-pipe tui))
             (sys::pipe-cleanup pipe)
@@ -463,7 +464,7 @@ arguments :shift, :alt, :control and :meta."))
       tui
     ;; present windows
     (let ((*put-buffer* canvas))
-      (map () #'present (windows tui)))
+      (map nil #'present (windows tui)))
     ;; render diff to terminal
     (sys:set-style *default-style* (use-palette tui))
     (loop :with diff = (buffer-diff screen canvas)
@@ -505,8 +506,12 @@ arguments :shift, :alt, :control and :meta."))
           (handle-mouse-event window tui button state relative-line relative-column
                               :shift shift :alt alt :control control :meta meta))))))
 
+;;
 ;;; timers
-
+;;
+;; timers are not simple callbacks since a single closure may be registered multiple
+;; times at distinct intervals, each of which must have its own identity. Moreover these
+;; instances may end up sharing captured mutable context, so I decided to make this explicit
 (defclass timer ()
   ((%callback :initarg :callback
               :accessor timer-callback
@@ -524,15 +529,15 @@ meaning to cancel the timer. A second optional return value assigns a new timer 
   "Interval is given in seconds"
   (make-instance 'timer :interval interval :callback callback :context context))
 
-(defmethod schedule-timer ((tui tui) timer)
+(defmethod schedule-timer ((tui tui) (timer timer))
   (let ((interval (timer-interval timer))
         (callback (timer-callback timer)))
     (check-type callback function)
     (check-type interval (real 0))
-    (push timer (timers tui)) ; TODO maybe use a heap if needed
+    (push timer (timers tui)) ; TODO maybe use a heap if people like lots of timers
     (setf (timers tui) (stable-sort (timers tui) #'< :key #'timer-interval))))
 
-(defmethod unschedule-timer ((tui tui) timer)
+(defmethod unschedule-timer ((tui tui) (timer timer))
   (setf (timers tui) (delete timer (timers tui))))
 
 (defun process-timer (tui timer)
@@ -606,10 +611,10 @@ meaning to cancel the timer. A second optional return value assigns a new timer 
                               (let* ((now (get-internal-real-time))
                                      (elapsed (/ (- now last-time)
                                                  internal-time-units-per-second)))
-                                (map () (lambda (timer)
-                                          (setf (timer-interval timer)
-                                                (max (- (timer-interval timer) elapsed)
-                                                     0)))
+                                (map nil (lambda (timer)
+                                           (setf (timer-interval timer)
+                                                 (max (- (timer-interval timer) elapsed)
+                                                      0)))
                                      timers)
                                 (setf last-time now)))
                             (reschedule-and-update-timers ()
@@ -654,7 +659,7 @@ meaning to cancel the timer. A second optional return value assigns a new timer 
         (set-cursor-shape :block)
         (disable-alternate-screen)
         (sys:reset-sigwinch)
-        (finish-output)))))
+        (force-output)))))
 
 #+windows
 (defmethod run ((tui tui) &key (redisplay-on-input t))
@@ -668,8 +673,6 @@ meaning to cancel the timer. A second optional return value assigns a new timer 
       (unwind-protect
            (catch 'tui-quit
              (loop
-               ;; DWORD WaitForMultipleObjects(DWORD len, HANDLE *handles,
-               ;;                              false, DWORD timeoutms)
                :with last-time = (get-internal-real-time)
                :with got-stdin
                :for next-timer = (pop timers)
@@ -682,17 +685,18 @@ meaning to cancel the timer. A second optional return value assigns a new timer 
                               (let* ((now (get-internal-real-time))
                                      (elapsed (/ (- now last-time)
                                                  internal-time-units-per-second)))
-                                (map () (lambda (timer)
-                                          (setf (timer-interval timer)
-                                                (max (- (timer-interval timer) elapsed)
-                                                     0)))
+                                (map nil (lambda (timer)
+                                           (setf (timer-interval timer)
+                                                 (max (- (timer-interval timer) elapsed)
+                                                      0)))
                                      timers)
                                 (setf last-time now)))
                             (reschedule-and-update-timers ()
                               (when next-timer
                                 (push next-timer timers)
                                 (update-timeouts))))
-
+                     ;; DWORD WaitForMultipleObjects(DWORD len, HANDLE *handles,
+                     ;;                              BOOL waitAll, DWORD timeout_ms)
                      ;; WaitForMultipleObjects is level triggered
                      ;; XXX (listen) probably uses stdio and doesn't work with buffering
                      (let ((ret (sys::WaitForMultipleObjects 2 handles 0 timeout)))
@@ -717,7 +721,8 @@ meaning to cancel the timer. A second optional return value assigns a new timer 
                           (when next-timer
                             (update-timeouts)
                             (process-timer tui next-timer)))
-                         ((= ret sys::+wait-failed+) (sys:error-syscall-error "waitformultipleobjects"))
+                         ((= ret sys::+wait-failed+)
+                          (sys:error-syscall-error "waitformultipleobjects"))
                          (t (error "strange error: wait returned ~d" ret)))))))
         (disable-mouse)
         (set-cursor-shape :bar)

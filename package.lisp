@@ -1,7 +1,7 @@
 ;;;; package.lisp
 
-(defpackage :uncursed-sys
-  (:use :cl :alexandria)
+(defpackage #:uncursed-sys
+  (:use :cl #:alexandria)
   (:export #:uncursed-error
            #:syscall-error
            #:error-syscall-error
@@ -38,9 +38,9 @@
            #:win-events-left
            ))
 
-(defpackage :uncursed
+(defpackage #:uncursed
   (:use :cl)
-  (:import-from :uncursed-sys
+  (:import-from #:uncursed-sys
                 #:uncursed-error
 
                 #:character-width #:*character-widths*
@@ -58,7 +58,7 @@
                 #:fg #:bg #:boldp #:italicp #:reversep #:underlinep
                 #:style-difference
                 #:*default-style*)
-  (:local-nicknames (:sys :uncursed-sys))
+  (:local-nicknames (:sys #:uncursed-sys))
   (:export #:uncursed-error
 
            #:character-width #:*character-widths*

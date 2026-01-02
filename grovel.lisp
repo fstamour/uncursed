@@ -1,4 +1,4 @@
-(in-package :uncursed-sys)
+(in-package #:uncursed-sys)
 
 (progn
   (include "errno.h")

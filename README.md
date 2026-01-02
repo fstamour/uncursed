@@ -23,6 +23,7 @@ n.b. `sand-game.lisp` features the color/timer functionality of the library and 
 - [x] basic documentation
 - [x] Windows support (new!)
 - [ ] layout abstraction
+- [ ] account for network character delays
 - [ ] high-level widget modules
 
 ## Getting started
@@ -66,7 +67,7 @@ It's pretty simple as you can see. Get the dimensions, initialize a rect structu
 for your `window` subclass's `dimensions` slot and use it to initialize a `tui` instance.
 On that topic, implementing three methods is useful:
 * `defgeneric handle-key-event (window tui event)` - self-explanatory, events take the following forms
-(may not work on all terminals, play with `examples/input.lisp`)
+(may not work on all terminals, test with `examples/input.lisp`)
   * `(CHARACTER [modifiers]...)` - modifiers include :shift, :alt, :control and :meta
   * `:f1-20, :home, :end, :insert, :delete, :up/:down/:left/:right-arrow, :page-down, :page-up`
   * `(:function-or-special-key [modifiers]...)` - above but with modifiers
@@ -77,6 +78,7 @@ and position relative to the window. Keyword arguments may include the modifiers
 * `defgeneric present (window)`, called each redisplay on every window. Drawing is done with:
   * `(put char line col &optional style)` which writes `char` at 1-based line/col coordinates relative to its position
   * `(puts string line col &optional style)` same thing with a string
+
 Both functions may raise a `window-bounds-error` when attempting to draw outside the window's dimensions and
 optionally accept a `style` struct with the following fields, corresponding the terminal attributes of rendered text where supported.
 ```lisp
@@ -86,7 +88,7 @@ optionally accept a `style` struct with the following fields, corresponding the 
   (boldp nil :type boolean)
   (italicp nil :type boolean)
   (reversep nil :type boolean)
-  (underlinep nil :type boolean))####
+  (underlinep nil :type boolean))
 ```
 
 The main function looks like this.
